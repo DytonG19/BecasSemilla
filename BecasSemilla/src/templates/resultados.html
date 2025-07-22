@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block title %}Resultados de Evaluación{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+
+    {% if show_form %}
+    <h2 class="mb-4 text-center">Tabla de Evaluación de Aplicantes</h2>
+    <p class="text-center text-muted">Puntaje automático (máx. 80) + Puntaje manual (máx. 20). Lee las justificaciones y asigna los puntos correspondientes.</p>
+    
+    <form action="{{ url_for('filtrar') }}" method="post">
+        <div class="table-responsive shadow-sm" style="max-height: 70vh;">
+            <table class="table table-striped table-hover table-bordered">
+                <thead class="sticky-header table-primary">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Estado Emprend.</th>
+                        <th>Puntaje Automático</th>
+                        <th>Interés en Financiamiento (Justificación)</th>
+                        <th>Metas a Corto Plazo (Justificación)</th>
+                        <th>Metas a Largo Plazo (Justificación)</th>
+                        <th class="bg-warning text-dark">Puntaje Justificación (10 o 20)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for aplicante in aplicantes %}
+                    <tr>
+                        <!-- Se usa .get() para manejar de forma segura los datos que puedan faltar en el Excel -->
+                        <input type="hidden" name="id" value="{{ aplicante.get('ID', '') }}">
+                        <input type="hidden" name="nombre" value="{{ aplicante.get('1. DATOS GENERALES DEL PARTICIPANTE (nombre completo, incluya su nombre y apellidos)', '') }}">
+                        <input type="hidden" name="subtotal_auto" value="{{ aplicante.get('subtotal_auto', 0) }}">
+                        <input type="hidden" name="certificado_sinapsis" value="{{ aplicante.get('TIENE CERTIFICADO DE EMPRENDIMIENTO JOVENES SINAPSIS', '') }}">
+                        <input type="hidden" name="fecha_nacimiento" value="{{ aplicante.get('Indique su fecha de nacimiento en el siguiente orden (día/mes/año)', '') }}">
+                        <input type="hidden" name="telefono" value="{{ aplicante.get('Escriba su número de teléfono (celular)', '') }}">
+                        <input type="hidden" name="email" value="{{ aplicante.get('Escriba su correo electrónico personal', '') }}">
+                        <input type="hidden" name="estado_emprendimiento" value="{{ aplicante.get('2. Estado actual emprendimiento emprendimiento/negocio/proyecto:', '') }}">
+                        <input type="hidden" name="puntaje_curso" value="{{ aplicante.get('curso', 0) }}">
+                        <input type="hidden" name="puntaje_estado" value="{{ aplicante.get('estado', 0) }}">
+                        <input type="hidden" name="puntaje_marca" value="{{ aplicante.get('marca', 0) }}">
+                        <input type="hidden" name="puntaje_redes" value="{{ aplicante.get('redes', 0) }}">
+                        <input type="hidden" name="puntaje_productos" value="{{ aplicante.get('productos', 0) }}">
+                        <input type="hidden" name="codigo_cdi" value="{{ aplicante.get('Escriba el código de su CDI (ejemplo GU0123)', '') }}">
+                        <input type="hidden" name="nombre_cdi" value="{{ aplicante.get('Escriba el nombre de su CDI', '') }}">
+                        <input type="hidden" name="facilitador" value="{{ aplicante.get('Seleccione el nombre de su Facilitador', '') }}">
+                        <input type="hidden" name="padre_cuidador" value="{{ aplicante.get('Escriba el nombre del padre de familia y/o cuidador', '') }}">
+                        <input type="hidden" name="telefono_padre_cuidador" value="{{ aplicante.get('Escriba el número de celular del padre de familia y/o cuidador', '') }}">
+                        
+                        <!-- Columnas visibles -->
+                        <td>{{ aplicante.get('ID', 'N/A') }}</td>
+                        <td>{{ aplicante.get('1. DATOS GENERALES DEL PARTICIPANTE (nombre completo, incluya su nombre y apellidos)', 'N/A') }}</td>
+                        <td>{{ aplicante.get('2. Estado actual emprendimiento emprendimiento/negocio/proyecto:', 'N/A') }}</td>
+                        <td>
+                            <strong class="fs-5">{{ aplicante.get('subtotal_auto', 0) }} / 80</strong>
+                            <small class="d-block text-muted">
+                                Curso: {{ aplicante.get('curso', 0) }} | Marca: {{ aplicante.get('marca', 0) }} | Redes: {{ aplicante.get('redes', 0) }} | Prod: {{ aplicante.get('productos', 0) }}
+                            </small>
+                        </td>
+                        <td><small>{{ aplicante.get('2.7 Mencione por que le interesa que su emprendimiento sea financiado con capital semilla', '') }}</small></td>
+                        <td><small>{{ aplicante.get('2.8 Cuáles son sus metas con su emprendimiento a corto plazo: (6 meses a 1 año explique por qué)', '') }}</small></td>
+                        <td><small>{{ aplicante.get('2.9 Cuáles son sus metas con su emprendimiento a largo plazo: (2 a 3 años explique por qué)', '') }}</small></td>
+                        <td>
+                            <!-- >>> CAMBIO AQUÍ: Se añade una opción por defecto y el atributo 'required' para forzar la selección <<< -->
+                             <select name="puntaje_justificacion" class="form-select" required>
+                                <option value="" disabled selected>Seleccionar puntaje...</option>
+                                <option value="20">20 Puntos (Justifica bien)</option>
+                                <option value="10">10 Puntos (No tiene idea clara)</option>
+                            </select>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-success btn-lg px-5">
+                <i class="bi bi-filter"></i> Calcular Puntajes Finales y Filtrar
+            </button>
+        </div>
+    </form>
+    {% endif %}
+
+    {% if show_results %}
+    <h2 class="mb-4 mt-5 text-center">Resultados Finales - Ranking de Aplicantes</h2>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Ranking</th>
+                        <th>ID</th>
+                        <th>Nombre del Joven</th>
+                        <th>Puntaje Total</th>
+                        <th>Detalle (Automático + Justificación)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for aplicante in aplicantes_ordenados %}
+                    <tr class="align-middle">
+                        <td><strong class="fs-4">{{ loop.index }}</strong></td>
+                        <td>{{ aplicante.get('ID', 'N/A') }}</td>
+                        <td>{{ aplicante.get('Nombre del joven', 'N/A') }}</td>
+                        <td>
+                            {% set puntaje = aplicante.get('Puntaje Total', 0) %}
+                            {% if puntaje == 100 %}
+                                {% set color_clase = 'bg-success' %}
+                            {% elif puntaje >= 90 %}
+                                {% set color_clase = 'bg-primary' %}
+                            {% else %}
+                                {% set color_clase = 'bg-warning text-dark' %}
+                            {% endif %}
+                            <h4><span class="badge {{ color_clase }}">{{ puntaje | round(2) }}</span></h4>
+                        </td>
+                        <td>{{ aplicante.get('Puntaje Automático', 0) }} + {{ aplicante.get('Puntaje Justificación', 0) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="text-center mt-4">
+        <a href="{{ url_for('home') }}" class="btn btn-primary"><i class="bi bi-arrow-left"></i> Volver a Cargar Otro Archivo</a>
+        
+        <form action="{{ url_for('exportar_excel') }}" method="post" class="d-inline">
+            {% for aplicante in aplicantes_ordenados %}
+                <input type="hidden" name="ranking" value="{{ loop.index }}">
+                <input type="hidden" name="id" value="{{ aplicante.get('ID', '') }}">
+                <input type="hidden" name="nombre" value="{{ aplicante.get('Nombre del joven', '') }}">
+                <input type="hidden" name="puntaje_total" value="{{ aplicante.get('Puntaje Total', 0) }}">
+                <input type="hidden" name="certificado_sinapsis" value="{{ aplicante.get('Certificado Sinapsis', '') }}">
+                <input type="hidden" name="fecha_nacimiento" value="{{ aplicante.get('Fecha Nacimiento', '') }}">
+                <input type="hidden" name="telefono" value="{{ aplicante.get('Telefono', '') }}">
+                <input type="hidden" name="email" value="{{ aplicante.get('Email', '') }}">
+                <input type="hidden" name="estado_emprendimiento" value="{{ aplicante.get('Estado Emprendimiento', '') }}">
+                <input type="hidden" name="puntaje_curso" value="{{ aplicante.get('Puntaje Curso', 0) }}">
+                <input type="hidden" name="puntaje_estado" value="{{ aplicante.get('Puntaje Estado', 0) }}">
+                <input type="hidden" name="puntaje_marca" value="{{ aplicante.get('Puntaje Marca', 0) }}">
+                <input type="hidden" name="puntaje_redes" value="{{ aplicante.get('Puntaje Redes', 0) }}">
+                <input type="hidden" name="puntaje_productos" value="{{ aplicante.get('Puntaje Productos', 0) }}">
+                <input type="hidden" name="puntaje_justificacion" value="{{ aplicante.get('Puntaje Justificación', 0) }}">
+                <input type="hidden" name="codigo_cdi" value="{{ aplicante.get('Codigo CDI', '') }}">
+                <input type="hidden" name="nombre_cdi" value="{{ aplicante.get('Nombre CDI', '') }}">
+                <input type="hidden" name="facilitador" value="{{ aplicante.get('Facilitador', '') }}">
+                <input type="hidden" name="padre_cuidador" value="{{ aplicante.get('Padre Cuidador', '') }}">
+                <input type="hidden" name="telefono_padre_cuidador" value="{{ aplicante.get('Telefono Padre Cuidador', '') }}">
+            {% endfor %}
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-file-earmark-excel-fill"></i> Exportar a Excel
+            </button>
+        </form>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

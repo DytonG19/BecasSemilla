@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Inicio - Cargar Archivo{% endblock %}
+
+{% block body %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm">
+            <div class="card-body p-5">
+                <h2 class="card-title text-center mb-4">Cargar Archivo de Aplicantes</h2>
+                <p class="text-center text-muted mb-4">Sube el archivo Excel (.xlsx) con los datos de los jóvenes para iniciar la evaluación.</p>
+                
+                <form action="{{ url_for('home') }}" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="file" class="form-label fw-bold">Seleccionar archivo Excel</label>
+                        <input class="form-control form-control-lg" type="file" id="file" name="file" required accept=".xlsx">
+                    </div>
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-cloud-upload-fill"></i> Procesar Archivo
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
